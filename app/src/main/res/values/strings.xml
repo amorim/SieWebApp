@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SieWebApp</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="description_logo">Logo da UFAL</string>
+    <string name="cpf">CPF</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="invalid_cpf">Invalid CPF</string>
+    <string name="invalid_password">Type the password</string>
+</resources>

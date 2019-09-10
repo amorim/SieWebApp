@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_view"
+    android:layout_width="match_parent"
+    android:layout_height="110dp"
+    android:layout_marginBottom="8dp"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:layout_marginTop="8dp"
+    android:background="#C5CAE9"
+    android:foreground="?attr/selectableItemBackground"
+    android:theme="@style/AppTheme">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="16dp">
+        <TextView
+            android:id="@+id/txtSubjectName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/layoutNota"
+            android:layout_alignParentStart="true"
+            android:text="Computação Gráfica"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceListItem"
+            android:textSize="14sp"/>
+        <TextView
+            android:id="@+id/txtSubjectCode"
+            android:layout_marginTop="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/txtSubjectName"
+            android:text="COMP300"
+            android:textSize="14sp"/>
+
+        <TextView
+            android:id="@+id/txtSubjectWorkload"
+            android:layout_marginTop="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/txtSubjectCode"
+            android:text="60h"
+            android:textSize="14sp"/>
+
+        <LinearLayout
+            android:id="@+id/layoutNota"
+            android:layout_width="50dp"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:gravity="center">
+
+            <EditText
+                android:id="@+id/edtMF"
+                android:textSize="20sp"
+                android:gravity="center_horizontal"
+                android:layout_width="50dp"
+                android:layout_gravity="center"
+                android:inputType="number|numberDecimal|numberSigned"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>

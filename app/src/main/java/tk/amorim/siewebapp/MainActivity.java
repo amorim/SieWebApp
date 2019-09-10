@@ -1,46 +1,47 @@
 package tk.amorim.siewebapp;
 
-import android.app.Activity;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.StrictMode;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.AsyncLayoutInflater;
-import android.util.Log;
-import android.view.View;
-import android.support.design.widget.NavigationView;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
-import java.text.DecimalFormat;
+import com.google.android.material.navigation.NavigationView;
+
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.List;
 
-import at.grabner.circleprogress.CircleProgressView;
-import at.grabner.circleprogress.TextMode;
+import tk.amorim.siewebapp.fragment.BoletimGenericFragment;
+import tk.amorim.siewebapp.fragment.GPAFragment;
+import tk.amorim.siewebapp.fragment.SimulatorFragment;
 import tk.amorim.siewebapp.http.SieWebHttp;
+import tk.amorim.siewebapp.interfaces.BoletimGetActivity;
 import tk.amorim.siewebapp.models.Periodo;
-import tk.amorim.siewebapp.models.Subject;
+
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, BoletimGetActivity {
 
     String cpf, passsword;
-    CircleProgressView cpv;
+    FrameLayout fl;
+    FragmentManager fragmentManager;
+    List<WeakReference<BoletimGenericFragment>> fragList = new ArrayList<>();
+    List<Periodo> boletim;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,44 +54,50 @@ public class MainActivity extends AppCompatActivity
         cpf = sp.getString("cpf", "");
         passsword = sp.getString("password", "");
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
+        drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-        cpv = (CircleProgressView)findViewById(R.id.circleView);
-        cpv.setRoundToWholeNumber(false);
+        navigationView.getMenu().getItem(0).setChecked(true);
 
-        cpv.setDecimalFormat(new DecimalFormat("0.00"));
-        cpv.setBarColor(ContextCompat.getColor(this, R.color.gradient1), ContextCompat.getColor(this, R.color.gradient2), ContextCompat.getColor(this, R.color.gradient3));
-        cpv.setRimColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-        cpv.setSpinBarColor(ContextCompat.getColor(this, R.color.primary_darker));
-        cpv.setTextColor(ContextCompat.getColor(this, R.color.white));
-        cpv.setSeekModeEnabled(false);
-        cpv.setTextMode(TextMode.VALUE);
-        cpv.setMaxValue(10);
-        cpv.setUnitVisible(false);
-        new BoletimTask(this, cpv).execute();
+        fl = findViewById(R.id.frameLayoutMain);
+        GPAFragment gpa = GPAFragment.newInstance();
+        fragmentManager = getSupportFragmentManager();
+        fragmentManager.beginTransaction().add(R.id.frameLayoutMain, gpa).commit();
+        new BoletimTask().execute();
     }
 
     @Override
+    public void onAttachFragment(Fragment fragment) {
+        fragList.add(new WeakReference(fragment));
+    }
+
+    public List<BoletimGenericFragment> getFragments() {
+        ArrayList<BoletimGenericFragment> ret = new ArrayList<>();
+        for(WeakReference<BoletimGenericFragment> ref : fragList) {
+            BoletimGenericFragment f = ref.get();
+            if(f != null) {
+                if(f.isVisible()) {
+                    ret.add(f);
+                }
+            }
+        }
+        return ret;
+    }
+
+
+
+
+    @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
@@ -107,82 +114,86 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_logout) {
+            getSharedPreferences("credentials", Context.MODE_PRIVATE).edit().clear().apply();
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+            finish();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        Fragment f = null;
+        if (id == R.id.nav_gpa) {
+            f = GPAFragment.newInstance();
         }
+        else if (id == R.id.nav_simulator) {
+            f = SimulatorFragment.newInstance();
+        }
+        if (f != null)
+            fragmentManager.beginTransaction().replace(R.id.frameLayoutMain, f).commit();
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
 
+
+
+
+
+    private void boletimDownloaded(List<Periodo> boletim) {
+        this.boletim = boletim;
+        List<BoletimGenericFragment> fragments = getFragments();
+        for (BoletimGenericFragment f : fragments) {
+            f.boletimReceived(boletim);
+        }
+    }
+
+    void goBackToLogin() {
+        startActivity(new Intent(MainActivity.this, LoginActivity.class));
+        finish();
+    }
+
+    @Override
+    public List<Periodo> getBoletim() {
+        return boletim;
+    }
+
     private class BoletimTask extends AsyncTask<Void, Void, ArrayList<Periodo>> {
-        private Activity context;
-        private CircleProgressView cpv;
-        BoletimTask(Activity context, CircleProgressView cpv) {
-            this.context = context;
-            this.cpv = cpv;
+        BoletimTask() {
         }
 
         @Override
         protected ArrayList<Periodo> doInBackground(Void... voids) {
-            return SieWebHttp.boletim(context.getSharedPreferences("credentials", Context.MODE_PRIVATE));
+            return SieWebHttp.boletim(MainActivity.this.getSharedPreferences("credentials", Context.MODE_PRIVATE));
         }
 
         @Override
         protected void onPostExecute(ArrayList<Periodo> periodos) {
             if (periodos == null) {
-                context.getSharedPreferences("credentials", Context.MODE_PRIVATE).edit().clear().apply();
-                startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                finish();
+                MainActivity.this.getSharedPreferences("credentials", Context.MODE_PRIVATE).edit().clear().apply();
+                MainActivity.this.goBackToLogin();
                 return;
             }
-            float soma = 0;
-            float qt = 0;
-            for (Periodo p : periodos) {
-                for (Subject s : p.getSubjects()) {
-                    if (s.getAvaliacoes().getMf() != -1 && s.getStatus().equals("AP")) {
-                          qt+=s.getCh();
-                        soma += s.getCh() * s.getAvaliacoes().getMf();
-                    }
-                }
-            }
-            float coef = 0;
-            if (qt != 0) {
-                coef = soma/qt;
-            }
-            cpv.setValueAnimated(coef);
+            TextView tv1 = findViewById(R.id.txtUserNameDrawer);
+            String norm = periodos.get(0).getNome().split(" ")[0];
+            String name = norm.substring(0, 1) + norm.substring(1).toLowerCase();
+            tv1.setText("Welcome, " + name + "!");
+            TextView tv2 = findViewById(R.id.txtUserInfoDrawer);
+            tv2.setText(periodos.get(0).getCurso());
+            MainActivity.this.boletimDownloaded(periodos);
         }
     }
-
 }
 

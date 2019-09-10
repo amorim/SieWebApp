@@ -1,42 +1,16 @@
 package tk.amorim.siewebapp.http;
 
 import android.content.SharedPreferences;
-import android.os.StrictMode;
 import android.text.Html;
-import android.util.Log;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.cookie.BasicClientCookie;
-import org.apache.http.util.EntityUtils;
-
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
-import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import tk.amorim.siewebapp.models.Avaliacao;
 import tk.amorim.siewebapp.models.Periodo;
@@ -62,8 +36,9 @@ public class SieWebHttp {
         params.put("loginForm:entrar", "Entrar");
         params.put("javax.faces.ViewState", "j_id1");
         int code2 = HttpRequest.post("https://sistemas.ufal.br/academico/login.seam").connectTimeout(10000).header("Cookie", "JSESSIONID=" + token).form(params).code();
-        int code3 = HttpRequest.get("https://sistemas.ufal.br/academico/home.seam").header("Cookie", "JSESSIONID=" + token).connectTimeout(10000).code();
-        return code3 == 200;
+        HttpRequest req = HttpRequest.get("https://sistemas.ufal.br/academico/home.seam").header("Cookie", "JSESSIONID=" + token).connectTimeout(10000);
+        String b  = req.body();
+        return !req.url().toString().contains("login");
     }
 
     public static ArrayList<Periodo> boletim(SharedPreferences sp) {
@@ -82,9 +57,15 @@ public class SieWebHttp {
         String html = req.body();
         html = html.replace("\t", "").replace("\n", "");
         String[] tables = html.split("<br /><span style=\"font-weight: bold;\">");
+        String matricula = Html.fromHtml(getBetweenStrings(tables[0], "Matr&iacute;cula:</span></td><td>", "</td>")).toString();
+        String nome = Html.fromHtml(getBetweenStrings(tables[0], "Nome:</span></td><td>", "</td>")).toString();
+        String curso = Html.fromHtml(getBetweenStrings(tables[0], "Curso:</span></td><td>", " -")).toString();
         ArrayList<Periodo> periodos = new ArrayList<>();
         for (int i = 1; i < tables.length; i++) {
             Periodo periodo = new Periodo();
+            periodo.setNome(nome);
+            periodo.setCurso(curso);
+            periodo.setMatricula(matricula);
             try {
                 periodo.setAno(Integer.parseInt(Html.fromHtml(getBetweenStrings(tables[i], "Per&iacute;odo: ", " /")).toString()));
             } catch (Exception ex) {
@@ -155,7 +136,7 @@ public class SieWebHttp {
 
     private static String getBetweenStrings(String text, String textFrom, String textTo) {
         String result = "";
-        result = text.substring(text.indexOf(textFrom) + textFrom.length(), text.length());
+        result = text.substring(text.indexOf(textFrom) + textFrom.length());
         result = result.substring(0, result.indexOf(textTo));
         return result;
     }
